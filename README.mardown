@@ -1,0 +1,186 @@
+# Chatbot Assistant I-SENSE
+
+## Présentation
+La plateforme I-SENSE est un outil utilisé par différents experts du Groupe OCP pour le suivi et l’analyse des équipements industriels. Lors de la première utilisation, une formation est dispensée afin de familiariser les utilisateurs avec les fonctionnalités principales de la plateforme.
+Cependant, cette formation n’est pas suffisante : les experts reviennent régulièrement poser des questions sur l’utilisation de certaines fonctionnalités ou sur l’interprétation des données.
+
+Pour répondre à ce besoin récurrent et améliorer l’efficacité des utilisateurs, l’idée a été proposée de développer un Chatbot assistant capable de répondre aux questions répétitives, en se basant sur les documents officiels et les ressources internes. Ce Chatbot vise à fournir des réponses rapides, précises et fiables, tout en conservant un contexte conversationnel pour enrichir l’expérience utilisateur.
+
+- **Objectif**: Fournir un support automatisé aux experts OCP via un chatbot intelligent basé sur les documents internes.
+- **Public cible**: Ingénieurs, analystes et experts métiers utilisant la plateforme I-SENSE.
+- **Date de création**: Créé le 06 septembre 2025.
+
+## Structure du projet
+Le projet est organisé en trois fichiers principaux :
+
+1. **`resume.md`**: Fichier contenant la base de connaissances (documents internes).
+2. **`build_vector.py`**: Script qui vectorise le contenu de resume.md pour l’indexation et la recherche.
+3. **`app.py`**: Application principale déployée avec Streamlit, qui lance le chatbot et permet l’interaction avec l’utilisateur.
+
+## Installation
+
+### Prérequis
+- Python 3.8 ou plus.
+- Connexion Internet pour télécharger Ollama et exécuter Mistral.
+- Ollama
+- Modèle Mistral installé via Ollama.
+
+## Étapes d’installation
+
+### 1. Installer Ollama
+
+- **Windows** : [Télécharger Ollama pour Windows](https://ollama.com/download/windows)
+- **macOS** : [Télécharger Ollama pour macOS](https://ollama.com/download/mac)
+
+### 2. Installer le modèle Mistral
+
+Ouvrez l’invite de commande ou PowerShell, puis exécutez :
+```bash
+ollama run mistral
+```
+
+### 3. Créer un environnement virtuel
+
+```bash
+python -m venv venv
+```
+
+### 4. Activer l’environnement virtuel
+
+- **Windows** :
+  ```bash
+  .\venv\Scripts\activate
+  ```
+- **Linux / macOS** :
+  ```bash
+  source venv/bin/activate
+  ```
+
+### 5. Installer les dépendances
+
+```bash
+pip install -r requirements.txt
+```
+
+### 6. Construire la base vectorielle
+
+```bash
+python build_vector.py
+```
+
+Un dossier `chroma_index` apparaît, il contient les données vectorisées.
+
+### 7. Lancer l’application
+
+```bash
+streamlit run app.py
+```
+
+L’application est maintenant accessible via ton navigateur.
+
+## Instructions détaillées
+
+#### `build_vector.py`
+
+**But** : Créer une base vectorielle à partir du fichier `resume.md`, afin de permettre au chatbot de rechercher efficacement des passages pertinents.
+
+**Fonctionnement** :
+- Charge le fichier `resume.md`.
+- Découpe le texte en chunks (segments) pour améliorer la cohérence lors de la recherche.
+- Vectorise ces segments à l’aide du modèle de la famille `sentence-transformers` (par défaut : `paraphrase-multilingual-MiniLM-L12-v2`, adapté au français).
+- Sauvegarde l’index vectoriel dans le dossier `chroma_index`.
+
+**Personnalisation possible** :
+- **Modèle de vectorisation** : tu peux remplacer `paraphrase-multilingual-MiniLM-L12-v2` par un autre modèle de `sentence-transformers`.
+  > Un modèle plus grand donnera une meilleure précision mais sera plus lent et consommera plus de mémoire.
+- **Chunk size** (`700` par défaut) : plus la valeur est grande, plus les segments contiennent de contexte (utile pour des réponses longues et complètes).
+- **Overlap** (`10` par défaut) : chevauchement entre les segments, permet de préserver la continuité d’idées entre deux chunks.
+
+---
+
+#### `app.py`
+
+**But** : Déployer une interface Streamlit pour interagir avec le chatbot.
+
+**Fonctionnement** :
+- Charge l’index vectoriel créé avec `build_vector.py`.
+- Utilise le modèle Mistral via Ollama pour générer les réponses.
+- Met en place une interface utilisateur moderne avec Streamlit, incluant :
+  - Un historique de chat
+  - Un bouton de réinitialisation
+  - Une section affichant les sources utilisées
+- Utilise deux prompts distincts :
+  - **QA_PROMPT** : répond uniquement à partir des documents (si aucune info → “Je ne sais pas.”).
+  - **SUMMARY_PROMPT** : permet de résumer un texte en 2–3 phrases claires.
+
+**Personnalisation possible** :
+- **Prompt** : adapter le style des réponses (ex. plus concis, plus détaillé, plus pédagogique).
+- **Nombre de sources** (`k=5`) : augmenter pour avoir plus de contexte, réduire pour accélérer la réponse.
+- **Longueur maximale affichée** (`1500` caractères) : régler selon le niveau de détail souhaité dans la section Sources utilisées.
+- **Paramètre temperature du modèle** (`0` par défaut) :
+  > `0` = réponses précises et factuelles, `>0` = plus créatif mais moins rigoureux.
+
+## Sorties attendues
+
+**À l’écran :**
+- Réponses conversationnelles générées par le modèle Mistral.
+- Historique des échanges affiché dans l’interface Streamlit.
+- Liste des sources utilisées pour chaque réponse (extraits du fichier `resume.md`).
+
+---
+
+## Erreurs possibles
+
+- **Ollama n’est pas lancé** :  
+  Vérifie que le service Ollama est bien démarré (`ollama run mistral` au moins une fois).
+
+- **Environnement virtuel non activé** :  
+  Assure-toi que ton environnement Python est activé (`.\venv\Scripts\activate` sous Windows, `source venv/bin/activate` sous Linux/macOS).
+
+- **Dossier chroma_index manquant** :  
+  Si le chatbot ne trouve pas de contexte, relance la commande :
+  ```bash
+  python build_vector.py
+  ```
+
+- **Erreurs Streamlit** :  
+  Vérifie que toutes les dépendances sont installées (`pip install -r requirements.txt`).
+
+---
+
+## Pertinence académique
+
+- **Innovation** :  
+  Le projet applique les LLMs (Large Language Models) à un contexte industriel spécifique (plateforme I-SENSE), en automatisant le support utilisateur.
+
+- **Traitement des données** :  
+  Illustre l’utilisation de la vectorisation et du RAG (Retrieval Augmented Generation) pour exploiter efficacement des documents internes.
+
+- **Visualisation et ergonomie** :  
+  L’intégration dans une interface Streamlit améliore la convivialité et facilite la diffusion auprès d’experts non techniques.
+
+- **Impact interdisciplinaire** :  
+  Croise l’intelligence artificielle, l’ingénierie industrielle et l’analyse métier, ouvrant des perspectives en innovation et digitalisation industrielle.
+
+---
+
+## Améliorations futures
+
+- Ajouter un mode multilingue pour répondre en français, anglais ou arabe selon l’utilisateur.
+- Intégrer la mise à jour automatique de la base de connaissances (sans relancer `build_vector.py`).
+- Étendre le chatbot à d’autres documents internes OCP (guides, procédures, manuels techniques).
+- Évaluer la possibilité d’ajouter des modèles spécialisés (par ex. LLaMA3, Mixtral) pour comparaison avec Mistral.
+- Ajouter une fonction d’export automatique des conversations en PDF ou CSV.
+
+---
+
+## Contributeurs
+
+Développé par :  
+**Amcassou Hanane**
+
+## Remerciements
+Je remercie chaleureusement mes encadrants à OCP MS pour leur accompagnement et leurs conseils précieux tout au long du projet.
+
+## Licence
+Tous droits réservés.
